@@ -24,7 +24,9 @@ class Clock(object):
     def __init__(self, identificador, proximo_evento):
         self.identificador = identificador
         self.proximo_evento = proximo_evento
+# FIN CLASE PADRE
 
+# INICIO CLASE CLIENTE
 class Cliente(Clock):
     def __init__(self, identificador, proximo_evento, atendido_por):
         Clock.__init__(self, identificador, proximo_evento)
@@ -33,15 +35,16 @@ class Cliente(Clock):
     def programar_nueva_falla(self):
         self.atendido_por = NADIE # Ya no está siendo atendido por un servidor
         self.proximo_evento = MC + TIEMPO_PARA_NUEVA_FALLA_DESPUES_DE_REPARADA
-# FIN CLASE PADRE
+# FIN CLASE CLIENTE
+
         
 # INICIO CLASE SERVIDOR
 class Servidor(Clock):
-    def __init__(self, identificador, proximo_evento, libre, atendiendo_a, tiempo_que_le_toma):
+    def __init__(self, identificador, proximo_evento, libre, atendiendo_a, tiempo_de_servicio):
         Clock.__init__(self,identificador, proximo_evento)
         self.libre = libre
         self.atendiendo_a = atendiendo_a
-        self.tiempo_que_le_toma = tiempo_que_le_toma
+        self.tiempo_de_servicio = tiempo_de_servicio
     
     # Cuando el servidor ha terminado de procesar un cliente debe ponerse en estado de
     # disponible para seguir procesando y programar la proxima falla del cliente
@@ -57,7 +60,7 @@ class Servidor(Clock):
     # que le toma al servidor procesar clientes, bloquear el servidor para que no
     # sea molestado, poner en estado de PROCESANDO al cliente
     def atender_cliente(self, cliente):
-        self.proximo_evento = MC + self.tiempo_que_le_toma
+        self.proximo_evento = MC + self.tiempo_de_servicio
         self.libre = False
         self.atendiendo_a = cliente.identificador
         cliente.atendido_por = self.identificador
@@ -82,9 +85,9 @@ clientes = [cliente1, cliente2, cliente3]
 # @identificador: es un id que hará único al servidor
 # @proximo_evento: inicialmente los servidores deben ponerse en 0 porque no están atendiendo a nadie
 # @libre: inicialmente en TRUE ya que no hay clientes al comienzo y el servidor está listo para recibirlos
-# @tiempo_que_le_toma: son las unidades de tiempo que le toma al servidor procesar un cliente
-servidor1 = Servidor(identificador=1, proximo_evento=0, libre=True, atendiendo_a=NADIE, tiempo_que_le_toma=5)
-servidor2 = Servidor(identificador=2, proximo_evento=0, libre=True, atendiendo_a=NADIE, tiempo_que_le_toma=5)
+# @tiempo_de_servicio: son las unidades de tiempo que le toma al servidor procesar un cliente
+servidor1 = Servidor(identificador=1, proximo_evento=0, libre=True, atendiendo_a=NADIE, tiempo_de_servicio=5)
+servidor2 = Servidor(identificador=2, proximo_evento=0, libre=True, atendiendo_a=NADIE, tiempo_de_servicio=5)
 
 # Agregar a la lista tantos objetos servidores haya creado
 servidores = [servidor1, servidor2]
@@ -153,6 +156,8 @@ def cargar_servidores_desde_cola():
             for cli in COLA_CLIENTES:
                 if cli.atendido_por == NADIE:
                     serv.atender_cliente(cli)
+                    break #si ya asignó cliente al server, ya no hay que seguir buscando
+                            #cliente que no esté siendo atendido
 
 # Un cliente se dañó y necesita ser reparado. Se necesita anexarlo a la cola de servicio
 def cargar_clientes_a_cola():
@@ -170,9 +175,8 @@ desplegar_encabezado()
 for paso in range(NUMERO_DE_PASOS + 1):
     if paso > 0:
         MC = get_clock_minimo()
-        liberar_servidores()
-        cargar_servidores_desde_cola()
         cargar_clientes_a_cola()
+        liberar_servidores()
         cargar_servidores_desde_cola()
   
     # Imprimir en pantalla los pasos de la simulación calculados
